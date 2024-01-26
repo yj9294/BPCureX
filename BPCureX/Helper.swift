@@ -224,5 +224,5 @@ extension UserDefaults {
 }
 
 enum FileKey: String {
-    case language, measures, duration, reminder, guide
+    case language, measures, duration, reminder, guide, disclaimer
 }

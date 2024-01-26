@@ -24,6 +24,9 @@ struct HomeReducer: Reducer {
         
         @FileHelper(.guide, defaultValue: true)
         var isGuide: Bool
+        
+        @FileHelper(.disclaimer, defaultValue: true)
+        var disclaimer: Bool
     }
     enum Action: BindableAction, Equatable {
         case binding(BindingAction<State>)
@@ -36,6 +39,7 @@ struct HomeReducer: Reducer {
         case presentAddView
         
         case guideButtonTapped
+        case disclaimerButtonTapped
     }
     var body: some Reducer<State, Action> {
         BindingReducer()
@@ -56,6 +60,9 @@ struct HomeReducer: Reducer {
             if case .guideButtonTapped = action {
                 state.isGuide = false
                 state.presentAddView()
+            }
+            if case .disclaimerButtonTapped = action {
+                state.disclaimer = false
             }
             // edit view 点击 ok 按钮
             if case let .add(.presented(.path(.element(id: id, action: .edit(.update))))) = action {
@@ -159,6 +166,11 @@ struct HomeView: View {
                         viewStore.send(.guideButtonTapped)
                     }
                 }
+                if viewStore.disclaimer {
+                    Disclaimer {
+                        viewStore.send(.disclaimerButtonTapped)
+                    }
+                }
             }
             .fullScreenCover(store: store.scope(state: \.$add, action: {.add($0)})) { store in
                 AddView(store: store)
@@ -209,6 +221,42 @@ struct HomeView: View {
                 HStack{Spacer()}
                 Spacer()
             }.foregroundColor(.white).font(.system(size: 16.0)).background(.black.opacity(0.45))
+        }
+    }
+    
+    struct Disclaimer: View {
+        let action: ()->Void
+        var body: some View {
+            ZStack{
+                Color.black.opacity(0.6)
+                VStack(spacing: 20){
+                    HStack{Spacer()}
+                    Text("Disclaimer").font(.system(size: 20)).foregroundStyle(Color("#242C44"))
+                    VStack(alignment: .leading) {
+                        Text("  BP Deliverer simply provides a blood pressure recording tool to help users keep an eye on their blood pressure. No medical help is provided. If you have any problems, please go to the hospital for professional help。Our blood pressure assessment is based on these websites:").foregroundColor(Color("#53545C"))
+                        VStack(alignment: .leading, spacing: 0){
+                            Link("1. https://www.jacc.org/doi/10.1016/j.jacc.2012.09.010", destination: URL(string: "https://www.jacc.org/doi/10.1016/j.jacc.2012.09.010")!)
+                            Link("2. https://en.wikipedia.org/wiki/Hypotension", destination: URL(string: "https://en.wikipedia.org/wiki/Hypotension")!)
+                            Link("3. https://en.wikipedia.org/wiki/Sphygmomanometer", destination: URL(string: "https://en.wikipedia.org/wiki/Sphygmomanometer")!)
+                        }.foregroundColor(.blue).underline()
+                    }.padding(.horizontal, 30)
+                    Button {
+                        action()
+                    } label: {
+                        HStack{
+                            Spacer()
+                            Text("OK").padding(.vertical, 15).foregroundColor(.white)
+                            Spacer()
+                        }.background(.linearGradient(colors: [Color("#42C3D6"), Color("#5AE9FF")], startPoint: .leading, endPoint: .trailing)).cornerRadius(26).padding(.horizontal, 40)
+                    }.foregroundStyle(Color.white).padding(.bottom,30)
+                }.background(Color.white.cornerRadius(16)).padding(.horizontal, 35)
+            }
+        }
+        
+        private func openURL(_ urlString: String) {
+            if let url = URL(string: urlString), UIApplication.shared.canOpenURL(url) {
+                UIApplication.shared.open(url)
+            }
         }
     }
 }
