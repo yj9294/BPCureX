@@ -29,6 +29,9 @@ struct ProfileReducer: Reducer {
             if case .path(.element(id: _, action: .privacy(.pop))) = action {
                 state.popView()
             }
+            if case .path(.element(id: _, action: .disclaimer(.pop))) = action {
+                state.popView()
+            }
             if case let .path(.element(id: id, action: .language(.pop))) = action {
                 if case let .language(languageState) = state.path[id: id] {
                     let item = languageState.item
@@ -46,12 +49,13 @@ struct ProfileReducer: Reducer {
             case reminder(ReminderReducer.State = .init())
             case privacy(PrivacyReducer.State = .init())
             case language(LanguageReducer.State = .init())
+            case disclaimer(DisclaimerReducer.State = .init())
         }
         enum Action: Equatable {
             case reminder(ReminderReducer.Action)
             case privacy(PrivacyReducer.Action)
             case language(LanguageReducer.Action)
-            
+            case disclaimer(DisclaimerReducer.Action)
         }
         var body: some Reducer<State, Action> {
             Reduce{ state, action in
@@ -66,13 +70,16 @@ struct ProfileReducer: Reducer {
             Scope(state: /State.language, action: /Action.language) {
                 LanguageReducer()
             }
+            Scope(state: /State.disclaimer, action: /Action.disclaimer) {
+                DisclaimerReducer()
+            }
         }
     }
 }
 
 extension ProfileReducer.State {
     enum Item: String, CaseIterable {
-        case reminder, privacy, language, rate
+        case reminder, privacy, language, rate, disclaimer
         var title: String {
             switch self {
             case .reminder:
@@ -83,6 +90,8 @@ extension ProfileReducer.State {
                 return "Language"
             case .rate:
                 return "Contact us"
+            case .disclaimer:
+                return "Disclaimer"
             }
         }
         var icon: String{
@@ -98,6 +107,8 @@ extension ProfileReducer.State {
             path.append(.privacy())
         case .language:
             path.append(.language())
+        case .disclaimer:
+            path.append(.disclaimer())
         case .rate:
             let AppUrl = "https://itunes.apple.com/cn/app/id6476556887"
             OpenURLAction { URL in
@@ -124,6 +135,8 @@ struct ProfileView: View {
                 CaseLet(/ProfileReducer.Path1.State.privacy, action: ProfileReducer.Path1.Action.privacy, then: PrivacyView.init(store:))
             case .language:
                 CaseLet(/ProfileReducer.Path1.State.language, action: ProfileReducer.Path1.Action.language, then: LanguageView.init(store:))
+            case .disclaimer:
+                CaseLet(/ProfileReducer.Path1.State.disclaimer, action: ProfileReducer.Path1.Action.disclaimer, then: DisclaimerView.init(store:))
             }
         }
     }

@@ -73,14 +73,10 @@ struct ContentView: View {
                 case .launched:
                     HomeView(store: store.scope(state: \.home, action: {.home($0)}))
                 }
-            }.onChange(of: scenePhase) { state in
-                switch state {
-                case .active:
-                    viewStore.send(.itemDidSelected(.launching))
-                default:
-                    break
-                }
-            }.environment(\.locale, viewStore.language.locale).onReceive(NotificationCenter.default.publisher(for: .updateLanguage), perform: { noti in
+            }.onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification), perform: { _ in
+                viewStore.send(.itemDidSelected(.launching))
+            })
+            .environment(\.locale, viewStore.language.locale).onReceive(NotificationCenter.default.publisher(for: .updateLanguage), perform: { noti in
                 if let language = noti.object as? LanguageReducer.State.Item {
                     viewStore.send(.language(language))
                 }

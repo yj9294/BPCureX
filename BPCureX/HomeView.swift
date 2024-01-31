@@ -18,6 +18,7 @@ struct HomeReducer: Reducer {
         var analytics: AnalyticsReducer.State = .init()
         var profile: ProfileReducer.State = .init()
         @PresentationState var add: AddReducer.State? = nil
+        @PresentationState var disclaimer: DisclaimerReducer.State? = nil
         
         @FileHelper(.measures, defaultValue: [])
         var measures: [Measurement]
@@ -26,20 +27,23 @@ struct HomeReducer: Reducer {
         var isGuide: Bool
         
         @FileHelper(.disclaimer, defaultValue: true)
-        var disclaimer: Bool
+        var isDisclaimer: Bool
     }
     enum Action: BindableAction, Equatable {
         case binding(BindingAction<State>)
         case tracker(TrackerReducer.Action)
         case analytics(AnalyticsReducer.Action)
         case profile(ProfileReducer.Action)
+        
         case add(PresentationAction<AddReducer.Action>)
+        case disclaimer(PresentationAction<DisclaimerReducer.Action>)
+        
         case updateLastItem
         case resetLstItem
         case presentAddView
+        case presentDisclaimerView
         
         case guideButtonTapped
-        case disclaimerButtonTapped
     }
     var body: some Reducer<State, Action> {
         BindingReducer()
@@ -50,6 +54,7 @@ struct HomeReducer: Reducer {
             if case .resetLstItem = action {
                 state.item = state.lastItem
             }
+            
             if case .presentAddView = action {
                 state.presentAddView()
             }
@@ -57,12 +62,16 @@ struct HomeReducer: Reducer {
                 state.dismissAddView()
             }
             
+            if case .presentDisclaimerView = action {
+                state.presentDisclaimerView()
+            }
+            if case .disclaimer(.presented(.okButtonTapped)) = action {
+                state.dismissDisclaimerView()
+            }
+            
             if case .guideButtonTapped = action {
                 state.isGuide = false
                 state.presentAddView()
-            }
-            if case .disclaimerButtonTapped = action {
-                state.disclaimer = false
             }
             // edit view 点击 ok 按钮
             if case let .add(.presented(.path(.element(id: id, action: .edit(.update))))) = action {
@@ -90,7 +99,10 @@ struct HomeReducer: Reducer {
             return .none
         }.ifLet(\.$add, action: /Action.add) {
             AddReducer()
+        }.ifLet(\.$disclaimer, action: /Action.disclaimer) {
+            DisclaimerReducer()
         }
+        
         Scope(state: \.tracker, action: /Action.tracker) {
             TrackerReducer()
         }
@@ -119,6 +131,15 @@ extension HomeReducer.State {
     }
     mutating func dismissAddView() {
         add = nil
+    }
+    
+    mutating func presentDisclaimerView() {
+        disclaimer = .init(item: .new)
+    }
+    
+    mutating func dismissDisclaimerView() {
+        isDisclaimer = false
+        disclaimer = nil
     }
     
     mutating func addMeasure(_ measure: Measurement) {
@@ -166,11 +187,13 @@ struct HomeView: View {
                         viewStore.send(.guideButtonTapped)
                     }
                 }
-                if viewStore.disclaimer {
-                    Disclaimer {
-                        viewStore.send(.disclaimerButtonTapped)
-                    }
+            }.onAppear{
+                if viewStore.isDisclaimer {
+                    viewStore.send(.presentDisclaimerView)
                 }
+            }
+            .fullScreenCover(store: store.scope(state: \.$disclaimer, action: {.disclaimer($0)})) { store in
+                DisclaimerView(store: store)
             }
             .fullScreenCover(store: store.scope(state: \.$add, action: {.add($0)})) { store in
                 AddView(store: store)
@@ -221,42 +244,6 @@ struct HomeView: View {
                 HStack{Spacer()}
                 Spacer()
             }.foregroundColor(.white).font(.system(size: 16.0)).background(.black.opacity(0.45))
-        }
-    }
-    
-    struct Disclaimer: View {
-        let action: ()->Void
-        var body: some View {
-            ZStack{
-                Color.black.opacity(0.6)
-                VStack(spacing: 20){
-                    HStack{Spacer()}
-                    Text("Disclaimer").font(.system(size: 20)).foregroundStyle(Color("#242C44"))
-                    VStack(alignment: .leading) {
-                        Text("  BP Deliverer simply provides a blood pressure recording tool to help users keep an eye on their blood pressure. No medical help is provided. If you have any problems, please go to the hospital for professional help。Our blood pressure assessment is based on these websites:").foregroundColor(Color("#53545C"))
-                        VStack(alignment: .leading, spacing: 0){
-                            Link("1. https://www.jacc.org/doi/10.1016/j.jacc.2012.09.010", destination: URL(string: "https://www.jacc.org/doi/10.1016/j.jacc.2012.09.010")!)
-                            Link("2. https://en.wikipedia.org/wiki/Hypotension", destination: URL(string: "https://en.wikipedia.org/wiki/Hypotension")!)
-                            Link("3. https://en.wikipedia.org/wiki/Sphygmomanometer", destination: URL(string: "https://en.wikipedia.org/wiki/Sphygmomanometer")!)
-                        }.foregroundColor(.blue).underline()
-                    }.padding(.horizontal, 30)
-                    Button {
-                        action()
-                    } label: {
-                        HStack{
-                            Spacer()
-                            Text("OK").padding(.vertical, 15).foregroundColor(.white)
-                            Spacer()
-                        }.background(.linearGradient(colors: [Color("#42C3D6"), Color("#5AE9FF")], startPoint: .leading, endPoint: .trailing)).cornerRadius(26).padding(.horizontal, 40)
-                    }.foregroundStyle(Color.white).padding(.bottom,30)
-                }.background(Color.white.cornerRadius(16)).padding(.horizontal, 35)
-            }
-        }
-        
-        private func openURL(_ urlString: String) {
-            if let url = URL(string: urlString), UIApplication.shared.canOpenURL(url) {
-                UIApplication.shared.open(url)
-            }
         }
     }
 }

@@ -48,7 +48,10 @@ struct HeartRateReducer: Reducer {
             }
         }
         var averageValue: Int {
-            Int(Double(average.reduce(0, +)) / Double(dates.count))
+            if dates.isEmpty {
+                return 0
+            }
+            return Int(Double(average.reduce(0, +)) / Double(dates.count))
         }
         var numberUnit: [Int] {
             Array(0...5).map { index in
